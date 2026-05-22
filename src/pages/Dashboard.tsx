@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Filter, Grid3X3, List, ShoppingBag, Tag, X, Cloud, RotateCcw, XCircle, Truck } from 'lucide-react';
+import { Search, Filter, Grid3X3, List, ShoppingBag, Tag, X, Cloud, RotateCcw, XCircle, Truck, Sun, Moon, Sunrise, Home, Package, Sparkles, ArrowUpRight, Shirt } from 'lucide-react';
 import { useAppStore } from '../store/AppStoreContext';
 import { PageShell } from '../components/layout/PageShell';
 import { Modal } from '../components/ui/Modal';
@@ -104,36 +104,255 @@ export function Dashboard() {
 
   const isInBag = (id: string) => state.getBag.some(b => b.itemId === id);
 
+  // Time-aware greeting
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 5 ? { label: 'Working late', Icon: Moon } :
+    hour < 12 ? { label: 'Good morning', Icon: Sunrise } :
+    hour < 18 ? { label: 'Good afternoon', Icon: Sun } :
+    { label: 'Good evening', Icon: Moon };
+  const GreetingIcon = greeting.Icon;
+
+  // Percentage helper
+  const pct = (n: number) => stats.total === 0 ? 0 : Math.round((n / stats.total) * 100);
+  const storedPct = pct(stats.stored);
+  const homePct = pct(stats.atHome);
+  const deliveringPct = pct(stats.delivering);
+
+  // Category counts for the strip
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    state.closet.forEach(i => { counts[i.category] = (counts[i.category] ?? 0) + 1; });
+    return counts;
+  }, [state.closet]);
+
   return (
     <PageShell>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Header */}
-        <div className="mb-8">
-          <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
-            <h1 className="text-3xl font-bold text-white mb-1">My Cloud Closet</h1>
-            <p className="text-zinc-400">Welcome back, {state.user.name.split(' ')[0]} — your wardrobe is safe with us.</p>
+
+        {/* ===== EDITORIAL HERO ===== */}
+        <section className="relative mb-10">
+          {/* Ambient gradient backdrop */}
+          <div aria-hidden className="absolute -top-20 -left-20 w-[480px] h-[320px] bg-gradient-to-br from-white/[0.04] via-white/[0.02] to-transparent rounded-full blur-3xl pointer-events-none" />
+          <div aria-hidden className="absolute top-10 right-0 w-[360px] h-[260px] bg-gradient-to-tl from-sky-500/[0.04] to-transparent rounded-full blur-3xl pointer-events-none" />
+
+          <motion.div
+            initial={{ opacity: 0, y: -8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
+            className="relative z-10"
+          >
+            {/* Greeting badge */}
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-zinc-900/80 border border-zinc-800 backdrop-blur-sm mb-5">
+              <GreetingIcon className="w-3.5 h-3.5 text-amber-300" />
+              <span className="text-xs font-medium text-zinc-300">
+                {greeting.label}, <span className="text-white font-semibold">{state.user.name.split(' ')[0]}</span>
+              </span>
+              <span className="w-1 h-1 rounded-full bg-zinc-700" />
+              <span className="text-xs text-zinc-500">{new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}</span>
+            </div>
+
+            {/* Editorial heading */}
+            <div className="flex items-end gap-4 flex-wrap">
+              <h1 className="font-black text-white tracking-tight leading-[0.95]">
+                <span className="block text-5xl sm:text-6xl lg:text-7xl">
+                  <span className="font-extralight italic text-zinc-400">My</span> Closet
+                </span>
+              </h1>
+              <p className="text-zinc-500 text-sm max-w-md pb-2">
+                Curated, climate-controlled, and one tap away. <span className="text-zinc-300">{stats.total} pieces</span> in your care.
+              </p>
+            </div>
+          </motion.div>
+        </section>
+
+        {/* ===== STATS DASHBOARD ===== */}
+        <motion.section
+          className="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4 mb-8"
+          variants={staggerContainer}
+          initial="initial"
+          animate="animate"
+        >
+          {/* Hero stat card — Total + distribution */}
+          <motion.div variants={staggerChild} className="lg:col-span-6 relative overflow-hidden rounded-3xl bg-gradient-to-br from-zinc-800/80 via-zinc-900 to-black border border-zinc-800 p-6 group hover:border-zinc-700 transition-colors">
+            {/* Decorative grid pattern */}
+            <div aria-hidden className="absolute inset-0 opacity-[0.04] pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+            {/* Glow */}
+            <div aria-hidden className="absolute -top-24 -right-24 w-64 h-64 bg-white/[0.05] rounded-full blur-3xl pointer-events-none" />
+
+            <div className="relative flex items-start justify-between mb-6">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-semibold">Wardrobe Total</p>
+                </div>
+                <div className="flex items-baseline gap-2 mt-2">
+                  <motion.span
+                    key={stats.total}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5 }}
+                    className="text-6xl sm:text-7xl font-black text-white tracking-tighter tabular-nums leading-none"
+                  >
+                    {stats.total}
+                  </motion.span>
+                  <span className="text-zinc-500 text-sm font-medium">pieces</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/60 border border-emerald-900/60">
+                <ArrowUpRight className="w-3 h-3 text-emerald-400" />
+                <span className="text-[10px] font-bold text-emerald-300 uppercase tracking-wider">Live</span>
+              </div>
+            </div>
+
+            {/* Segmented distribution bar */}
+            <div className="relative">
+              <div className="flex items-center gap-1 h-2.5 rounded-full overflow-hidden bg-zinc-800">
+                {stats.stored > 0 && (
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${storedPct}%` }}
+                    transition={{ duration: 0.8, delay: 0.2, ease: 'easeOut' }}
+                    className="h-full bg-gradient-to-r from-zinc-300 to-zinc-100 rounded-full"
+                  />
+                )}
+                {stats.atHome > 0 && (
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${homePct}%` }}
+                    transition={{ duration: 0.8, delay: 0.35, ease: 'easeOut' }}
+                    className="h-full bg-gradient-to-r from-sky-500 to-sky-300 rounded-full"
+                  />
+                )}
+                {stats.delivering > 0 && (
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${deliveringPct}%` }}
+                    transition={{ duration: 0.8, delay: 0.5, ease: 'easeOut' }}
+                    className="h-full bg-gradient-to-r from-amber-500 to-amber-300 rounded-full"
+                  />
+                )}
+              </div>
+              {/* Legend */}
+              <div className="flex flex-wrap gap-x-5 gap-y-2 mt-4">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-zinc-100" />
+                  <span className="text-xs text-zinc-400"><span className="text-white font-bold">{stats.stored}</span> in Cloud <span className="text-zinc-600">· {storedPct}%</span></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-sky-400" />
+                  <span className="text-xs text-zinc-400"><span className="text-white font-bold">{stats.atHome}</span> At Home <span className="text-zinc-600">· {homePct}%</span></span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-amber-400" />
+                  <span className="text-xs text-zinc-400"><span className="text-white font-bold">{stats.delivering}</span> Delivering <span className="text-zinc-600">· {deliveringPct}%</span></span>
+                </div>
+              </div>
+            </div>
           </motion.div>
 
-          {/* Stats */}
-          <motion.div
-            className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6"
-            variants={staggerContainer}
-            initial="initial"
-            animate="animate"
-          >
-            {[
-              { label: 'Total Items', value: stats.total, color: 'text-white' },
-              { label: 'Stored in Cloud', value: stats.stored, color: 'text-zinc-200' },
-              { label: 'At Home', value: stats.atHome, color: 'text-sky-300' },
-              { label: 'On the Way', value: stats.delivering, color: 'text-amber-300' },
-            ].map(stat => (
-              <motion.div key={stat.label} variants={staggerChild} className="bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <div className={`text-2xl font-bold ${stat.color}`}>{stat.value}</div>
-                <div className="text-xs text-zinc-500 mt-0.5">{stat.label}</div>
-              </motion.div>
-            ))}
-          </motion.div>
-        </div>
+          {/* Side stat tiles */}
+          {[
+            {
+              label: 'In Cloud Storage',
+              value: stats.stored,
+              percent: storedPct,
+              Icon: Cloud,
+              tint: 'from-zinc-700/30 to-zinc-800/0',
+              iconBg: 'bg-zinc-800 border-zinc-700',
+              iconColor: 'text-zinc-200',
+              barColor: 'bg-zinc-200',
+              accent: 'text-zinc-300',
+            },
+            {
+              label: 'At Your Home',
+              value: stats.atHome,
+              percent: homePct,
+              Icon: Home,
+              tint: 'from-sky-900/20 to-zinc-900/0',
+              iconBg: 'bg-sky-950 border-sky-900',
+              iconColor: 'text-sky-300',
+              barColor: 'bg-sky-400',
+              accent: 'text-sky-300',
+            },
+            {
+              label: 'On the Way',
+              value: stats.delivering,
+              percent: deliveringPct,
+              Icon: Truck,
+              tint: 'from-amber-900/20 to-zinc-900/0',
+              iconBg: 'bg-amber-950 border-amber-900',
+              iconColor: 'text-amber-300',
+              barColor: 'bg-amber-400',
+              accent: 'text-amber-300',
+            },
+          ].map(s => (
+            <motion.div
+              key={s.label}
+              variants={staggerChild}
+              className={`lg:col-span-2 relative overflow-hidden rounded-3xl bg-gradient-to-br ${s.tint} bg-zinc-900 border border-zinc-800 p-5 hover:border-zinc-700 transition-all hover:-translate-y-0.5`}
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className={`w-10 h-10 rounded-2xl ${s.iconBg} border flex items-center justify-center`}>
+                  <s.Icon className={`w-5 h-5 ${s.iconColor}`} strokeWidth={2} />
+                </div>
+                <span className={`text-[10px] font-bold ${s.accent} tabular-nums`}>{s.percent}%</span>
+              </div>
+              <div className="flex items-baseline gap-1.5 mb-3">
+                <span className="text-4xl font-black text-white tracking-tight tabular-nums leading-none">{s.value}</span>
+                <span className="text-zinc-600 text-xs">/ {stats.total}</span>
+              </div>
+              <p className="text-[11px] text-zinc-400 font-medium uppercase tracking-wider mb-3">{s.label}</p>
+              <div className="h-1 rounded-full bg-zinc-800 overflow-hidden">
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: `${s.percent}%` }}
+                  transition={{ duration: 0.9, delay: 0.3, ease: 'easeOut' }}
+                  className={`h-full ${s.barColor} rounded-full`}
+                />
+              </div>
+            </motion.div>
+          ))}
+        </motion.section>
+
+        {/* ===== CATEGORY QUICK STRIP ===== */}
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.4 }}
+          className="mb-6"
+        >
+          <div className="flex items-center gap-2 mb-3">
+            <Sparkles className="w-3.5 h-3.5 text-zinc-500" />
+            <p className="text-[10px] uppercase tracking-[0.18em] text-zinc-500 font-semibold">Browse by category</p>
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-thin">
+            {CATEGORIES.filter(c => c.value === 'all' || (categoryCounts[c.value] ?? 0) > 0).map(c => {
+              const count = c.value === 'all' ? stats.total : (categoryCounts[c.value] ?? 0);
+              const active = category === c.value;
+              return (
+                <button
+                  key={c.value}
+                  onClick={() => setCategory(c.value)}
+                  className={`flex-shrink-0 group flex items-center gap-2 pl-3 pr-2 py-2 rounded-full border text-xs font-semibold transition-all ${
+                    active
+                      ? 'bg-white text-black border-white shadow-lg shadow-white/10'
+                      : 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white hover:border-zinc-600'
+                  }`}
+                >
+                  {c.value === 'all' && <Package className="w-3.5 h-3.5" />}
+                  {(c.value === 'shirt' || c.value === 'jacket' || c.value === 'dress') && <Shirt className="w-3.5 h-3.5" />}
+                  <span>{c.label}</span>
+                  <span className={`min-w-[20px] text-center text-[10px] font-bold px-1.5 py-0.5 rounded-full tabular-nums ${
+                    active ? 'bg-black/10 text-black' : 'bg-zinc-800 text-zinc-500 group-hover:bg-zinc-700 group-hover:text-zinc-300'
+                  }`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </motion.section>
 
         {/* Search + Controls */}
         <div className="flex flex-col sm:flex-row gap-3 mb-6">
